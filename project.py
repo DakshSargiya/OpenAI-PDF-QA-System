@@ -2,13 +2,17 @@ import sys
 import openai
 import nltk
 from PyPDF2 import PdfReader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.llms import OpenAI
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
 from nltk.tokenize import sent_tokenize
 from nltk.corpus import stopwords
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
+from langchain.chains import RetrievalQA
+
+
+
+
 
 
 
@@ -26,30 +30,22 @@ class LegalQA:
         return text
 
     def _initialize_qa_chain(self):
-        
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
+        # Split the document into manageable chunks
+        text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
         texts = text_splitter.split_text(self.document_text)
 
+        # Create embeddings for the text chunks
+        embeddings = OpenAIEmbeddings(model="text-embedding-ada-002")
 
-        llm = OpenAI(model="gpt-4")
-        qa_chain = RetrievalQA(llm=llm, retriever=texts)
-        
-        system_prompt = (
-            "Use the given context to answer the question. "
-            "If you don't know the answer, say you don't know. "
-            "Use three sentence maximum and keep the answer concise. "
-            "Context: {context}"
-        )
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", system_prompt),
-                ("human", "{input}"),
-            ]
-        )
-        question_answer_chain = create_stuff_documents_chain(llm, prompt)
-        qa_chain = create_retrieval_chain(retriever, question_answer_chain)
+        # Use FAISS as the vector store
+        vector_store = FAISS.from_texts(texts, embeddings)
 
-        chain.invoke({"input": query})
+        # Create a retriever
+        retriever = vector_store.as_retriever()
+
+        # Use the retriever with the LLM for question-answering
+        llm = OpenAI(model="gpt-3.5-turbo", openai_api_key=os.getenv("OPENAI_API_KEY"))
+        qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever, return_source_documents=True)
         
         return qa_chain
     
