@@ -15,10 +15,14 @@ openai
 2. Install dependencies:
    `pip install openai PyPDF2 langchain nltk`
 
-3. Upload one or more PDF files using the file uploader.
-
-4. Ask a question about the content of the PDF files in the text input field.
-5. The application will use the Langchain and Open AI to find the answer in the context of the PDF files and display it.
+3. Export your OpenAI API key on your terminal
+    ```bash
+    export OPENAI_API_KEY='OPENAI_API_KEY'
+4. Usage: 
+    ```bash 
+    python3 question-answering.py /path/to/document "question    goes here"
+    ```
+5. It will use Langchain and Open AI to find the answer in the context of the PDF files and display it.
 
 ## Code Structure
 * `project.py`: Main file.
